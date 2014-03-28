@@ -5,7 +5,7 @@ JRUBY_VERSION      = "1.7.11"
 CLOBBER.include("jruby-complete-#{JRUBY_VERSION}.jar")
 
 desc "download, and copy to ruby-processing"
-task :default => [:download, :copy_ruby]
+task :default => [:download, :copy_ruby, :install_bundler]
 
 desc "download JRuby upstream sources"
 task :download => ["jruby-complete-#{JRUBY_VERSION}.jar"]
@@ -16,10 +16,16 @@ file "jruby-complete-#{JRUBY_VERSION}.jar" do
 end
 
 directory "../lib/ruby"
+directory "gem_home"
 
 desc "copy jruby-complete"
 task :copy_ruby => ["../lib/ruby"] do
   sh "cp -v jruby-complete-#{JRUBY_VERSION}.jar ../lib/ruby/jruby-complete.jar"
+end
+
+desc "Install bundler in vendor/gem_home"
+task :install_bundler => ["gem_home"] do
+  sh "java -jar ../lib/ruby/jruby-complete.jar -S gem install -i gem_home --no-rdoc --no-ri bundler"
 end
 
 def check_sha1(filename, expected_hash)

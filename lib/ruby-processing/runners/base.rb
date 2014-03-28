@@ -2,6 +2,7 @@
 
 $LOAD_PATH << File.expand_path(File.dirname(__FILE__) + "/../../")
 SKETCH_PATH = ARGV.shift unless defined? SKETCH_PATH
+require 'bundler/setup' if ARGV.shift == '--bundler'
 SKETCH_ROOT = File.dirname(SKETCH_PATH) unless defined? SKETCH_ROOT
 
 require 'ruby-processing'

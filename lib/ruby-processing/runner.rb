@@ -25,11 +25,13 @@ module Processing
     create:     create new sketch. Use --bare to generate simpler sketches without a class
     app:        create an application version of the sketch
     unpack:     unpack samples or library
+    bundle:     Runs `bundle install` using the vendored jarred jruby
 
   Common options:
     --nojruby:  do not use the installed version of jruby, instead use our vendored
                 jarred one (required for shader sketches, and some others).
-  
+    --bundler: Load bundler environment (has no effect when using system jruby)
+
   Configuration file:
     A YAML configuration file is located at {Processing::CONFIG_FILE_PATH}
     
@@ -47,6 +49,8 @@ module Processing
     rp5 create some_new_sketch 640 480
     rp5 create some_new_sketch --p3d 640 480
     rp5 watch some_new_sketch.rb
+    rp5 bundle
+    rp5 run sketch.rb --nojruby --bundler
 
   Everything Else:
     http://wiki.github.com/jashkenas/ruby-processing
@@ -69,6 +73,7 @@ module Processing
       when 'create' then create(@options.path, @options.args, @options.p3d)
       when 'app'    then app(@options.path)
       when 'unpack' then unpack(@options.path)
+      when 'bundle' then bundle_install
       when /-v/     then show_version
       when /-h/     then show_help
       else
@@ -148,10 +153,18 @@ module Processing
       java_args = discover_java_args(sketch)
       warn("The --jruby flag is no longer required") if @options.jruby
       command = @options.nojruby ?
-         ['java', java_args, '-cp', jruby_complete, 'org.jruby.Main', runner, sketch, args].flatten :
-         ['jruby', java_args, runner, sketch, args].flatten                
-      exec *command
+        [
+          "GEM_HOME=#{gem_home}", "GEM_PATH=#{gem_home}", #vendor/gem_home is where gems are
+          'java', java_args, '-cp', jruby_complete, 'org.jruby.Main', runner, sketch, args
+        ].flatten :
+        ['jruby', java_args, runner, sketch, args].flatten
+      exec command.join(' ')
       # exec replaces the Ruby process with the JRuby one.
+    end
+
+    def bundle_install
+      system("GEM_HOME=#{gem_home} GEM_PATH=#{gem_home} " +
+        "java -jar #{jruby_complete} -S bundle install")
     end
 
     # If you need to pass in arguments to Java, such as the ones on this page:
@@ -182,6 +195,10 @@ module Processing
 	warn "#{rcomplete} does not exist\nTry running `install_jruby_complete`"
 	exit
       end	      
+    end
+
+    def gem_home
+      File.join(RP5_ROOT, 'vendors/gem_home')
     end
 
     # On the Mac, we can display a fat, shiny ruby in the Dock.
